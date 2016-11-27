@@ -6,6 +6,7 @@ for convenience.
 To force upload, import this module and run main(True).
 """
 
+import argparse
 import httplib2
 import os
 
@@ -16,11 +17,7 @@ from oauth2client import tools
 from oauth2client.file import Storage
 
 # Taken from https://developers.google.com/drive/v3/web/quickstart/python
-try:
-    import argparse
-    flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
-except ImportError:
-    flags = None
+flags = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
 
 SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
@@ -57,7 +54,8 @@ def get_credentials():
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
+        secret_file = os.path.join(SCRIPT_DIR, CLIENT_SECRET_FILE)
+        flow = client.flow_from_clientsecrets(secret_file, SCOPES)
         flow.user_agent = APPLICATION_NAME
         if flags:
             credentials = tools.run_flow(flow, store, flags)
