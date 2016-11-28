@@ -32,7 +32,8 @@ arg_help = [
     "Force overwrite.",
     "Prints last modified dates and whether 'force' is required to upload.",
     "Set the mimetype for all files to be uploaded. Generally, Google Drive "
-        "handles this automatically. Use 'text/plain'"
+        "handles this automatically. Use 'text/plain' to edit with Drive apps "
+        "like Drive Notepad."
 ]
 
 parent = tools.argparser
