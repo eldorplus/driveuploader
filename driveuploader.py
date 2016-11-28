@@ -38,7 +38,7 @@ arg_help = [
 parent = tools.argparser
 group = parent.add_argument_group('standard')
 exclusive_group = parent.add_mutually_exclusive_group()
-parent.add_argument("-f", "--file_list", help=arg_help[1], required=True)
+parent.add_argument("file_list", help=arg_help[1])
 parent.add_argument("-d", "--home_dir", help=arg_help[2])
 parent.add_argument("--folder", help=arg_help[3])
 exclusive_group.add_argument("--force", help=arg_help[4], action='store_true')
