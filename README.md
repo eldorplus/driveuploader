@@ -4,6 +4,10 @@ Uploads files to Google Drive. By default it checks if the files exist, and chec
 
 It is meant to be used with batch files to keep uploaded GDrive files updated without needing to delete the old ones and replace the new ones, as well as preventing uploads from replacing a newer revision of the file. I'll eventually add a similar functioning GDrive file downloader.
 
+##Requirements:
+
+You need Google Drive API credentials to access the API for uploading files. See here: [https://developers.google.com/drive/v3/web/quickstart/python]. This script looks for it in the same folder with the name 'client_secret.json'.
+
 ##Args:
 
 Omitted default GDrive API options here for brevity.
@@ -36,4 +40,16 @@ optional arguments:
   --mimetype MIMETYPE   Set the mimetype for all files to be uploaded.
                         Generally, Google Drive handles this automatically.
                         Use 'text/plain'
+```
+
+##Batch:
+A simple batch files/example commands:
+upload_myfiles.bat:
+```
+python C:\Users\Username\Desktop\driveuploader.py "file.txt,otherfile.txt,data.bin" -d "C:\Path\To\Folder" --folder gdrivefolder
+```
+
+force_upload.bat:
+```
+python C:\Users\Username\Desktop\driveuploader.py "C:\Path\To\Folder\file.txt,C:\Path\To\Folder\otherfile.txt,C:\Path\To\Folder\data.bin" --force
 ```
