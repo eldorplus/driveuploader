@@ -6,7 +6,7 @@ It is meant to be used with batch files to keep uploaded GDrive files updated wi
 
 ##Requirements:
 
-You need Google Drive API credentials to access the API for uploading files. See here: [https://developers.google.com/drive/v3/web/quickstart/python]. This script looks for it in the same folder with the name 'client_secret.json'.
+You need Google Drive API credentials to access the API for uploading files. See here: https://developers.google.com/drive/v3/web/quickstart/python. This script looks for it in the same folder with the name 'client_secret.json'.
 
 ##Args:
 
@@ -44,6 +44,7 @@ optional arguments:
 
 ##Batch:
 A simple batch files/example commands:
+
 upload_myfiles.bat:
 ```
 python C:\Users\Username\Desktop\driveuploader.py "file.txt,otherfile.txt,data.bin" -d "C:\Path\To\Folder" --folder gdrivefolder
