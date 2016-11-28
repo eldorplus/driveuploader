@@ -91,7 +91,7 @@ def get_credentials(script_dir):
 
 
 class Uploader(object):
-    """Docstring."""
+    """Uploader class. Properties are set with command line args."""
 
     def __init__(self):
         self.file_list = args['file_list'].split(',')
@@ -229,6 +229,7 @@ class Uploader(object):
 
 
 def parse_check(local_update, drive_update, filename):
+    """Parse strings for printing information for 'check' option."""
     time_string = "%Y-%m-%d, %H:%M:%S"
     local_mod_time = time.strftime(time_string,
                                    time.localtime(local_update))
