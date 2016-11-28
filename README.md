@@ -39,7 +39,8 @@ optional arguments:
                         required to upload.
   --mimetype MIMETYPE   Set the mimetype for all files to be uploaded.
                         Generally, Google Drive handles this automatically.
-                        Use 'text/plain'
+                        Use 'text/plain' to edit with Drive apps like Drive
+                        Notepad.
 ```
 
 ##Batch:
