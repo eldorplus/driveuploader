@@ -8,7 +8,8 @@ It is meant to be used with batch files to keep uploaded GDrive files updated wi
 
 Omitted default GDrive API options here for brevity.
 
-```usage: driveuploader.py [-h]
+```
+usage: driveuploader.py [-h]
                         [-d HOME_DIR] [--folder FOLDER] [--force | -c]
                         [--mimetype MIMETYPE]
                         file_list
@@ -34,4 +35,5 @@ optional arguments:
                         required to upload.
   --mimetype MIMETYPE   Set the mimetype for all files to be uploaded.
                         Generally, Google Drive handles this automatically.
-                        Use 'text/plain'```
+                        Use 'text/plain'
+```
