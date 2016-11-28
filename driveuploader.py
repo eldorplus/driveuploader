@@ -11,6 +11,7 @@ metadata, so manually uploaded files must be forced.
 import argparse
 import httplib2
 import os
+import time
 
 from apiclient import discovery
 from apiclient.http import MediaFileUpload
@@ -23,7 +24,7 @@ arg_help = [
     "Save or overwrite files to Google Drive. The last modified date of the "
         "file is written to a custom property, and will only overwrite without"
         " --force if this date is before the file's last modified date.",
-    "List of files seperated by comma (and no spaces) (required).",
+    "Files list separated by comma (no spaces, use quotes). (required).",
     "Home directory to look for items in file_list. If omitted include the "
         "full path in the file list or relative path to script will be used.",
     "Folder name to upload files to in Google Drive. If omitted, files will be"
@@ -31,7 +32,7 @@ arg_help = [
     "Force overwrite.",
     "Prints last modified dates and whether 'force' is required to upload.",
     "Set the mimetype for all files to be uploaded. Generally, Google Drive "
-        "handles this automatically."
+        "handles this automatically. Use 'text/plain'"
 ]
 
 parent = tools.argparser
@@ -47,6 +48,7 @@ flags = argparse.ArgumentParser(
     parents=[parent],
     description=arg_help[0]
 ).parse_args()
+args = vars(flags)
 
 SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
@@ -92,13 +94,13 @@ class Uploader(object):
     """Docstring."""
 
     def __init__(self):
-        self.file_list = flags['file_list'].split(',')
-        if flags['folder']:
-            self.drive_folder = flags['folder']
+        self.file_list = args['file_list'].split(',')
+        if args['folder']:
+            self.drive_folder = args['folder']
         else:
             self.drive_folder = "root"
-        if flags['mimetype']:
-            self.mimetype = flags['mimetype']
+        if args['mimetype']:
+            self.mimetype = args['mimetype']
         else:
             self.mimetype = None
         credentials = get_credentials(SCRIPT_DIR)
@@ -112,8 +114,9 @@ class Uploader(object):
         if self.drive_folder == "root":
             return self.drive_folder
         folder = self.service.files().list(
-            q="mimeType='{}' and name='{}'".format(FOLDER_MIMETYPE,
-                                                   self.drive_folder),
+            q="mimeType='{}' and name='{}' "
+              "and trashed=false".format(FOLDER_MIMETYPE,
+                                         self.drive_folder),
             spaces='drive').execute()['files']
         if not folder:
             return self.make_folder(self.drive_folder)['id']
@@ -130,8 +133,7 @@ class Uploader(object):
             'mimeType': FOLDER_MIMETYPE
         }
         folder = self.service.files().create(
-            body=file_metadata,
-            fields='files(id, name)').execute()
+            body=file_metadata).execute()
         print '{} folder created, ID: {}'.format(folder_name, folder.get('id'))
         return {'file': folder, 'id': folder.get('id')}
 
@@ -144,12 +146,13 @@ class Uploader(object):
         :type folder_id: str
         """
         files = self.service.files().list(
-            q="'{}' in parents and name='{}' and trashed=false".format(
-                folder_id, filename),
+            q="'{}' in parents and name='{}' and trashed=false and not "
+              "mimeType='{}'".format(
+                folder_id, filename, FOLDER_MIMETYPE),
             fields="files(id, name, properties)").execute()['files']
         return files[0] if files else None
 
-    def upload(self, force):
+    def upload(self, force=False, check=False):
         """Upload files to GDrive. Only overwrite existing files if
         they were more recently modified, or if force == True.
 
@@ -157,8 +160,8 @@ class Uploader(object):
         """
         for local_file in self.file_list:
             filename = os.path.split(local_file)[-1]
-            if flags['home_dir']:
-                filepath = os.path.join(flags['home_dir'], local_file)
+            if args['home_dir']:
+                filepath = os.path.join(args['home_dir'], local_file)
             else:
                 filepath = os.path.join(SCRIPT_DIR, local_file)
             file_last_update = int(os.path.getmtime(filepath))
@@ -171,31 +174,51 @@ class Uploader(object):
             if file_found:
                 if not force:
                     try:
-                        modified = int(file_found[0]['properties']['modified'])
+                        modified = int(file_found['properties']['modified'])
                     except KeyError:
-                        print "Properties not defined. Use force upload."
+                        print ("Properties not defined for {}. Use force "
+                              "upload.").format(filename)
+                        if check:
+                            print parse_check(file_last_update, None, filename)
                         continue
                     if modified > file_last_update:
                         print ("File {} was last modified after local file. "
                                "FILE WAS NOT UPDATED!!! Force upload "
                                "required.").format(filename)
+                        if check:
+                            print parse_check(file_last_update,
+                                              modified,
+                                              filename)
                         continue
                     elif modified == file_last_update:
                         print ("File {} has same last modified date. FILE WAS "
                                "NOT UPDATED!!! Force upload "
                                "required.").format(filename)
+                        if check:
+                            print parse_check(file_last_update,
+                                              modified,
+                                              filename)
                         continue
 
+                if check:
+                    print "File {} is ready to upload.".format(filename)
+                    print parse_check(file_last_update, modified, filename)
+                    continue
                 media = MediaFileUpload(filepath,
                                         mimetype=self.mimetype)
                 self.service.files().update(
-                    fileId=file_found[0]['id'],
+                    fileId=file_found['id'],
                     media_body=media,
                     body=file_metadata
                 ).execute()
                 print "File {} updated.".format(filepath)
                 continue
 
+            if check:
+                print ("File {} does not exist in GDrive. Ready to "
+                      "upload.").format(filename)
+                print parse_check(file_last_update, None, filename)
+                continue
             file_metadata['parents'] = [ folder_id ]
             media = MediaFileUpload(filepath,
                                     mimetype=self.mimetype)
@@ -204,17 +227,28 @@ class Uploader(object):
                 media_body=media).execute()
             print "File {} uploaded.".format(filepath)
 
-    def run_check(self):
-        pass
+
+def parse_check(local_update, drive_update, filename):
+    time_string = "%Y-%m-%d, %H:%M:%S"
+    local_mod_time = time.strftime(time_string,
+                                   time.localtime(local_update))
+    if drive_update:
+        drive_mod_time = time.strftime(time_string,
+                                       time.localtime(drive_update))
+    else:
+        drive_mod_time = "Undefined"
+    return ("{}:\n  Local file last updated: {}\n  Remote file last updated "
+        "{}").format(filename, local_mod_time, drive_mod_time)
 
 
 def main():
-    GDrive = Uploader()
-    if flags['check']:
-        GDrive.run_check()
-        return
-    force = True if flags['force'] else False
-    GDrive.upload(force)
+    gdrive = Uploader()
+    if args['check']:
+        gdrive.upload(check=True)
+    elif args['force']:
+        gdrive.upload(force=True)
+    else:
+        gdrive.upload()
 
 
 if __name__ == '__main__':
