@@ -17,7 +17,8 @@ Omitted default GDrive API options here for brevity.
 ```
 usage: driveuploader.py [-h]
                         [-d HOME_DIR] [--folder FOLDER] [--force | -c]
-                        [--mimetype MIMETYPE]
+                        [--mimetype MIMETYPE] [--description DESCRIPTION]
+                        [--no_overwrite] [--prompt]
                         file_list
 
 Save or overwrite files to Google Drive. The last modified date of the file is
@@ -41,8 +42,17 @@ optional arguments:
                         required to upload.
   --mimetype MIMETYPE   Set the mimetype for all files to be uploaded.
                         Generally, Google Drive handles this automatically.
-                        Use 'text/plain' to edit with Drive apps like Drive
-                        Notepad.
+                        Use 'text/plain' to force a file to work with Drive
+                        editors like Drive Notepad.
+  --description DESCRIPTION
+                        Set a description to all files to be uploaded, visible
+                        in GDrive app (use quotes). Use --description=" " to
+                        remove description.
+  --no_overwrite        Add files without overwriting. 'no_overwrite' files
+                        will be flagged with a custom property and will never
+                        be found by the script.
+  --prompt              Enables the 'Press enter to close.' prompt at script
+                        end.
 ```
 
 ##Batch:
@@ -57,3 +67,7 @@ force_upload.bat:
 ```
 python C:\Users\Username\Desktop\driveuploader.py "C:\Path\To\Folder\file.txt,C:\Path\To\Folder\otherfile.txt,C:\Path\To\Folder\data.bin" --force
 ```
+
+##Etc:
+
+I noticed while uploading multiple files with `--no_overwrite` that the files may not show in the order of upload in Google Drive. So if you have multiple of the same file in the same folder, it may be difficult to determine which is no_overwrite or not. Sadly the custom file property metadata doesn't seem to be accessible from the Drive app, so setting the file's description via `--description` may be necessary.

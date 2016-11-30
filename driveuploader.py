@@ -64,7 +64,13 @@ def get_credentials(script_dir):
 class Uploader(object):
     """Uploader class. Properties are set with command line args."""
 
-    def __init__(self, folder=None, mimetype=None, home_dir=None, **kwargs):
+    def __init__(self,
+                 folder=None,
+                 mimetype=None,
+                 home_dir=None,
+                 no_overwrite=False,
+                 description=None,
+                 **kwargs):
         self.file_list = kwargs['file_list'].split(',')
         if folder:
             self.drive_folder = folder
@@ -75,6 +81,8 @@ class Uploader(object):
         else:
             self.mimetype = None
         self.home_dir = home_dir
+        self.no_overwrite = no_overwrite
+        self.description = description
         credentials = get_credentials(SCRIPT_DIR)
         http = credentials.authorize(httplib2.Http())
         self.service = discovery.build('drive', 'v3', http=http)
@@ -118,11 +126,13 @@ class Uploader(object):
         :type filename: str
         :type folder_id: str
         """
+        no_overwrite_property = "{ key='no_overwrite' and value='true'}"
         files = self.service.files().list(
             q="'{}' in parents and name='{}' and trashed=false and not "
-              "mimeType='{}'".format(
-                folder_id, filename, FOLDER_MIMETYPE),
-            fields="files(id, name, properties)").execute()['files']
+              "mimeType='{}' and not properties has {}".format(
+                folder_id, filename, FOLDER_MIMETYPE, no_overwrite_property),
+            fields="files(id, name, properties, "
+                   "description)").execute()['files']
         return files[0] if files else None
 
     def upload(self, force=False, check=False):
@@ -144,7 +154,7 @@ class Uploader(object):
             }
             folder_id = self.find_folder()
             file_found = self.find_drive_files(filename, folder_id)
-            if file_found:
+            if file_found and not self.no_overwrite:
                 if not force:
                     try:
                         modified = int(file_found['properties']['modified'])
@@ -179,6 +189,8 @@ class Uploader(object):
                     print("File {} is ready to upload.".format(filename))
                     print(parse_check(file_last_update, modified, filename))
                     continue
+                if self.description:
+                    file_metadata['description'] = self.description
                 media = MediaFileUpload(filepath,
                                         mimetype=self.mimetype)
                 self.service.files().update(
@@ -194,6 +206,10 @@ class Uploader(object):
                       "upload.".format(filename))
                 print(parse_check(file_last_update, None, filename))
                 continue
+            if self.description:
+                file_metadata['description'] = self.description
+            if self.no_overwrite:
+                file_metadata['properties']['no_overwrite'] = 'true'
             file_metadata['parents'] = [ folder_id ]
             media = MediaFileUpload(filepath,
                                     mimetype=self.mimetype)
@@ -213,7 +229,7 @@ def parse_check(local_update, drive_update, filename):
                                        time.localtime(drive_update))
     else:
         drive_mod_time = "Undefined"
-    return ("{}:\n  Local file last updated: {}\n  Remote file last updated "
+    return ("{}:\n  Local file last updated: {}\n  Remote file last updated: "
         "{}").format(filename, local_mod_time, drive_mod_time)
 
 
@@ -245,7 +261,12 @@ if __name__ == '__main__':
             "upload.",
         "Set the mimetype for all files to be uploaded. Generally, Google "
             "Drive handles this automatically. Use 'text/plain' to force a "
-            "file to work with Drive editors like Drive Notepad."
+            "file to work with Drive editors like Drive Notepad.",
+        "Set a description to all files to be uploaded, visible in GDrive "
+            "app (use quotes). Use --description=\" \" to remove description.",
+        "Add files without overwriting. 'no_overwrite' files will be flagged "
+            "with a custom property and will never be found by the script.",
+        "Enables the 'Press enter to close.' prompt at script end."
     ]
 
     parent = tools.argparser
@@ -262,6 +283,13 @@ if __name__ == '__main__':
                                  help=arg_help[5],
                                  action='store_true')
     parent.add_argument("--mimetype", help=arg_help[6])
+    parent.add_argument("--description", help=arg_help[7])
+    parent.add_argument("--no_overwrite",
+                        help=arg_help[8],
+                        action='store_true')
+    parent.add_argument("--prompt",
+                        help=arg_help[9],
+                        action='store_true')
     flags = argparse.ArgumentParser(
         parents=[parent],
         description=arg_help[0]
@@ -269,7 +297,8 @@ if __name__ == '__main__':
     kw_args = vars(flags)
 
     main(**kw_args)
-    raw_input("Press enter to close.")
+    if kw_args['prompt']:
+        raw_input("Press enter to close.")
 
 
 
