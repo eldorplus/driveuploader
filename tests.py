@@ -1,3 +1,8 @@
+"""Simple test(s) to make sure the driveuploader doesn't error out when
+accessing Google Drive. Complete testing requires actually uploading
+files to the drive.
+"""
+
 from __future__ import print_function
 
 import os
