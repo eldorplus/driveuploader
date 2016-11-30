@@ -8,6 +8,8 @@ It is meant to be used with batch files to keep uploaded GDrive files updated wi
 
 You need Google Drive API credentials to access the API for uploading files. See here: https://developers.google.com/drive/v3/web/quickstart/python. This script looks for it in the same folder with the name 'client_secret.json'.
 
+`pip install -r C:\path\to\requirements.txt`
+
 ##Args:
 
 Omitted default GDrive API options here for brevity.
