@@ -135,7 +135,7 @@ class Uploader(object):
                    "description)").execute()['files']
         return files[0] if files else None
 
-    def upload(self, force=False, check=False):
+    def upload(self, force=False, check=False): # TODO: split up this monstrous method
         """Upload files to GDrive. Only overwrite existing files if
         they were more recently modified, or if force == True.
 
@@ -220,7 +220,12 @@ class Uploader(object):
 
 
 def parse_check(local_update, drive_update, filename):
-    """Parse strings for printing information for 'check' option."""
+    """Parse strings for printing information for 'check' option.
+
+    :type local_update: int
+    :type drive_update: int | None
+    :type filename: str
+    """
     time_string = "%Y-%m-%d, %H:%M:%S"
     local_mod_time = time.strftime(time_string,
                                    time.localtime(local_update))
@@ -284,7 +289,7 @@ if __name__ == '__main__':
                                  action='store_true')
     parent.add_argument("--mimetype", help=arg_help[6])
     parent.add_argument("--description", help=arg_help[7])
-    parent.add_argument("--no_overwrite",
+    exclusive_group.add_argument("--no_overwrite",
                         help=arg_help[8],
                         action='store_true')
     parent.add_argument("--prompt",
