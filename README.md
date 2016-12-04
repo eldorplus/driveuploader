@@ -52,7 +52,7 @@ optional arguments:
                         will be flagged with a custom property and will never
                         be found by the script.
   --prompt              Enables the 'Press enter to close.' prompt at script
-                        end.
+                        end. This pauses the script.
 ```
 
 ##Batch:
