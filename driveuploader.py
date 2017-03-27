@@ -140,13 +140,14 @@ class Uploader(object):
         they were more recently modified, or if force == True.
 
         :type force: bool
+        :type check: bool
         """
         for local_file in self.file_list:
             filename = os.path.split(local_file)[-1]
             if self.home_dir:
                 filepath = os.path.join(self.home_dir, local_file)
             else:
-                filepath = os.path.join(SCRIPT_DIR, local_file)
+                filepath = local_file
             file_last_update = int(os.path.getmtime(filepath))
             file_metadata = {
                 'name': filename,
@@ -256,9 +257,8 @@ if __name__ == '__main__':
             " without --force if this date is before the file's last modified "
             "date.",
         "Files list separated by comma (no spaces, use quotes). (required).",
-        "Home directory to look for items in file_list. If omitted include the"
-            " full path in the file list or relative path to script will be "
-            "used.",
+        "Home directory to look for items in file_list. Will use home "
+            "directory instead of current working directory.",
         "Folder name to upload files to in Google Drive. If omitted, files "
             "will be placed in root directory.",
         "Force overwrite.",
