@@ -160,15 +160,17 @@ class Uploader(object):
                     try:
                         modified = int(file_found['properties']['modified'])
                     except KeyError:
-                        print("Properties not defined for {}. Use force "
-                              "upload.".format(filename))
+                        print("File {} already exists in google drive and was "
+                              "not uploaded by this script.\nFILE "
+                              "WAS NOT UPDATED!!! Use force upload to "
+                              "overwrite.".format(filename))
                         if check:
                             print(parse_check(file_last_update,
                                               None,
                                               filename))
                         continue
                     if modified > file_last_update:
-                        print("File {} was last modified after local file. "
+                        print("File {} was last modified after local file.\n"
                                "FILE WAS NOT UPDATED!!! Force upload "
                                "required.".format(filename))
                         if check:
@@ -177,7 +179,7 @@ class Uploader(object):
                                               filename))
                         continue
                     elif modified == file_last_update:
-                        print("File {} has same last modified date. FILE WAS "
+                        print("File {} has same last modified date.\nFILE WAS "
                                "NOT UPDATED!!! Force upload "
                                "required.".format(filename))
                         if check:
@@ -269,7 +271,7 @@ if __name__ == '__main__':
             "file to work with Drive editors like Drive Notepad.",
         "Set a description to all files to be uploaded, visible in GDrive "
             "app (use quotes). Use --description=\" \" to remove description.",
-        "Add files without overwriting. 'no_overwrite' files will be flagged "
+        "Add files without overwriting. 'no-overwrite' files will be flagged "
             "with a custom property and will never be found by the script.",
         "Enables the 'Press enter to close.' prompt at script end."
     ]
@@ -289,7 +291,7 @@ if __name__ == '__main__':
                                  action='store_true')
     parent.add_argument("--mimetype", help=arg_help[6])
     parent.add_argument("--description", help=arg_help[7])
-    exclusive_group.add_argument("--no_overwrite",
+    exclusive_group.add_argument("--no-overwrite",
                         help=arg_help[8],
                         action='store_true')
     parent.add_argument("--prompt",
