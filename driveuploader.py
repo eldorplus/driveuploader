@@ -70,6 +70,7 @@ class Uploader(object):
                  home_dir=None,
                  no_overwrite=False,
                  description=None,
+                 backup=False,
                  **kwargs):
         self.file_list = kwargs['file_list'].split(',')
         if folder:
@@ -83,6 +84,7 @@ class Uploader(object):
         self.home_dir = home_dir
         self.no_overwrite = no_overwrite
         self.description = description
+        self.backup = backup
         credentials = get_credentials(SCRIPT_DIR)
         http = credentials.authorize(httplib2.Http())
         self.service = discovery.build('drive', 'v3', http=http)
@@ -135,7 +137,7 @@ class Uploader(object):
                    "description)").execute()['files']
         return files[0] if files else None
 
-    def upload(self, force=False, check=False): # TODO: split up this monstrous method
+    def upload(self, force=False, check=False): # TODO: create handler for upload args
         """Upload files to GDrive. Only overwrite existing files if
         they were more recently modified, or if force == True.
 
@@ -153,73 +155,92 @@ class Uploader(object):
                 'name': filename,
                 'properties': {'modified': file_last_update}
             }
+            if self.description:
+                file_metadata['description'] = self.description
+            media = MediaFileUpload(filepath,
+                                    mimetype=self.mimetype)
             folder_id = self.find_folder()
             file_found = self.find_drive_files(filename, folder_id)
             if file_found and not self.no_overwrite:
-                if not force:
-                    try:
-                        modified = int(file_found['properties']['modified'])
-                    except KeyError:
-                        print("File {} already exists in google drive and was "
-                              "not uploaded by this script.\nFILE "
-                              "WAS NOT UPDATED!!! Use force upload to "
-                              "overwrite.".format(filename))
-                        if check:
-                            print(parse_check(file_last_update,
-                                              None,
-                                              filename))
-                        continue
-                    if modified > file_last_update:
-                        print("File {} was last modified after local file.\n"
-                               "FILE WAS NOT UPDATED!!! Force upload "
-                               "required.".format(filename))
-                        if check:
-                            print(parse_check(file_last_update,
-                                              modified,
-                                              filename))
-                        continue
-                    elif modified == file_last_update:
-                        print("File {} has same last modified date.\nFILE WAS "
-                               "NOT UPDATED!!! Force upload "
-                               "required.".format(filename))
-                        if check:
-                            print(parse_check(file_last_update,
-                                              modified,
-                                              filename))
-                        continue
-
+                self.update_file(force, filename, file_last_update, file_found,
+                                 check, media, file_metadata, filepath, folder_id)
+                continue
+            if self.backup:
+                print("File {} not found for backup.".format(filename))
+            self.upload_file(filename, file_last_update, check, media,
+                    file_metadata, folder_id, filepath)
+    
+    def update_file(self, force, filename, file_last_update, file_found,
+                    check, media, file_metadata, filepath, folder_id):
+        if not force:
+            try:
+                modified = int(file_found['properties']['modified'])
+            except KeyError:
+                print("File {} already exists in google drive and was "
+                      "not uploaded by this script.\nFILE "
+                      "WAS NOT UPDATED!!! Use force upload to "
+                      "overwrite.".format(filename))
                 if check:
-                    print("File {} is ready to upload.".format(filename))
-                    print(parse_check(file_last_update, modified, filename))
-                    continue
-                if self.description:
-                    file_metadata['description'] = self.description
-                media = MediaFileUpload(filepath,
-                                        mimetype=self.mimetype)
-                self.service.files().update(
-                    fileId=file_found['id'],
-                    media_body=media,
-                    body=file_metadata
-                ).execute()
-                print("File {} updated.".format(filepath))
-                continue
+                    print(parse_check(file_last_update,
+                                      None,
+                                      filename))
+                return
+            if modified > file_last_update:
+                print("File {} was last modified after local file.\n"
+                       "FILE WAS NOT UPDATED!!! Force upload "
+                       "required.".format(filename))
+                if check:
+                    print(parse_check(file_last_update,
+                                      modified,
+                                      filename))
+                return
+            elif modified == file_last_update:
+                print("File {} has same last modified date.\nFILE WAS "
+                       "NOT UPDATED!!! Force upload "
+                       "required.".format(filename))
+                if check:
+                    print(parse_check(file_last_update,
+                                      modified,
+                                      filename))
+                return
 
-            if check:
-                print("File {} does not exist in GDrive. Ready to "
-                      "upload.".format(filename))
-                print(parse_check(file_last_update, None, filename))
-                continue
-            if self.description:
-                file_metadata['description'] = self.description
-            if self.no_overwrite:
-                file_metadata['properties']['no_overwrite'] = 'true'
-            file_metadata['parents'] = [ folder_id ]
-            media = MediaFileUpload(filepath,
-                                    mimetype=self.mimetype)
-            self.service.files().create(
-                body=file_metadata,
-                media_body=media).execute()
-            print("File {} uploaded.".format(filepath))
+        if check:
+            print("File {} is ready to upload.".format(filename))
+            print(parse_check(file_last_update, modified, filename))
+            return
+        if self.backup:
+            self.service.files().update(
+                fileId=file_found['id'],
+                body={
+                    'name': filename,
+                    'properties': {'no_overwrite': 'true'}
+                }
+            ).execute()
+            self.upload_file(filename, file_last_update, check, media,
+                    file_metadata, folder_id, filepath)
+            return
+        self.service.files().update(
+            fileId=file_found['id'],
+            media_body=media,
+            body=file_metadata
+        ).execute()
+        print("File {} updated.".format(filepath))
+        return
+        
+    def upload_file(self, filename, file_last_update, check, media,
+                    file_metadata, folder_id, filepath):
+        if check:
+            print("File {} does not exist in GDrive. Ready to "
+                  "upload.".format(filename))
+            print(parse_check(file_last_update, None, filename))
+            return
+        if self.no_overwrite:
+            file_metadata['properties']['no_overwrite'] = 'true'
+        file_metadata['parents'] = [ folder_id ]
+        self.service.files().create(
+            body=file_metadata,
+            media_body=media).execute()
+        print("File {} uploaded.".format(filepath))
 
 
 def parse_check(local_update, drive_update, filename):
@@ -273,7 +294,8 @@ if __name__ == '__main__':
             "app (use quotes). Use --description=\" \" to remove description.",
         "Add files without overwriting. 'no-overwrite' files will be flagged "
             "with a custom property and will never be found by the script.",
-        "Enables the 'Press enter to close.' prompt at script end."
+        "Enable the 'Press enter to close.' prompt at script end.",
+        "Keep the old file instead of overwriting."
     ]
 
     parent = tools.argparser
@@ -296,6 +318,9 @@ if __name__ == '__main__':
                         action='store_true')
     parent.add_argument("--prompt",
                         help=arg_help[9],
+                        action='store_true')
+    parent.add_argument("--backup",
+                        help=arg_help[10],
                         action='store_true')
     flags = argparse.ArgumentParser(
         parents=[parent],
