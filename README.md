@@ -1,16 +1,16 @@
-#Google Drive Uploader
+# Google Drive Uploader
 
 Uploads files to Google Drive. By default it checks if the files exist, and checks for a 'last modified' custom property in the drive file's metadata. If the last modified date is the same or later than the last modified date of the local file (or doesn't exist, if you manually uploaded the file), it requires the --force option to upload.
 
 It is meant to be used with batch files to keep uploaded GDrive files updated without needing to delete the old ones and replace the new ones, as well as preventing uploads from replacing a newer revision of the file. I'll eventually add a similar functioning GDrive file downloader.
 
-##Requirements:
+## Requirements:
 
 You need Google Drive API credentials to access the API for uploading files. See here: https://developers.google.com/drive/v3/web/quickstart/python. This script looks for it in the same folder with the name 'client_secret.json'.
 
 Install required library: `pip install -r C:\path\to\requirements.txt`
 
-##Args:
+## Args:
 
 Omitted default GDrive API options here for brevity.
 
@@ -55,7 +55,7 @@ optional arguments:
                         end.
 ```
 
-##Batch:
+## Batch:
 A simple batch files/example commands:
 
 upload_myfiles.bat:
@@ -68,6 +68,6 @@ force_upload.bat:
 python C:\Users\Username\Desktop\driveuploader.py "C:\Path\To\Folder\file.txt,C:\Path\To\Folder\otherfile.txt,C:\Path\To\Folder\data.bin" --force
 ```
 
-##Etc:
+## Etc:
 
 I noticed while uploading multiple files with `--no_overwrite` that the files may not show in the order of upload in Google Drive. So if you have multiple of the same file in the same folder, it may be difficult to determine which is no_overwrite or not. Sadly the custom file property metadata doesn't seem to be accessible from the Drive app, so setting the file's description via `--description` may be necessary.
