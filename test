@@ -1,0 +1,3 @@
+python driveuploader.py -c -d /home/cabox/workspace/googledriveuploader/driveuploader/ --folder test --description Hey tests.py
+
+python tests.py
