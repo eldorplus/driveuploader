@@ -5,7 +5,7 @@ overwrite it only if the modified date in the drive is older than the
 modified date of file to be uploaded, unless --force is set.
 
 This module uses a custom 'modified date' property in drive file's
-metadata, so manually uploaded files must be forced.
+metadata, so overwriting manually uploaded files must be forced.
 """
 from __future__ import print_function
 
