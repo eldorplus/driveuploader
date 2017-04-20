@@ -137,7 +137,7 @@ class Uploader(object):
                    "description)").execute()['files']
         return files[0] if files else None
 
-    def upload(self, force=False, check=False): # TODO: create handler for upload args
+    def upload(self, force=False, check=False):
         """Upload files to GDrive. Only overwrite existing files if
         they were more recently modified, or if force == True.
 
@@ -152,25 +152,25 @@ class Uploader(object):
                                     mimetype=self.mimetype)
             folder_id = self.find_folder()
             file_found = self.find_drive_files(file_class.filename, folder_id)
+            file_class.set_upload_properties(force, check, file_found, media, folder_id)
             if file_found and not self.no_overwrite:
-                self.update_file(file_class, force, check, file_found, media,
-                                 folder_id)
+                self.update_file(file_class)
                 continue
             if self.backup:
                 print("File {} not found for "
                       "backup.".format(file_class.filename))
-            self.upload_file(file_class, folder_id, media, check)
+            self.upload_file(file_class)
     
-    def update_file(self, file_class, force, check, file_found, media, folder_id):
-        if not force:
+    def update_file(self, file_class):
+        if not file_class.force:
             try:
-                modified = int(file_found['properties']['modified'])
+                modified = int(file_class.file_found['properties']['modified'])
             except KeyError:
                 print("File {} already exists in google drive and was "
                       "not uploaded by this script.\nFILE "
                       "WAS NOT UPDATED!!! Use force upload to "
                       "overwrite.".format(file_class.filename))
-                if check:
+                if file_class.check:
                     print(parse_check(file_class.file_last_update,
                                       None,
                                       file_class.filename))
@@ -179,7 +179,7 @@ class Uploader(object):
                 print("File {} was last modified after local file.\n"
                        "FILE WAS NOT UPDATED!!! Force upload "
                        "required.".format(file_class.filename))
-                if check:
+                if file_class.check:
                     print(parse_check(file_class.file_last_update,
                                       modified,
                                       file_class.filename))
@@ -188,46 +188,46 @@ class Uploader(object):
                 print("File {} has same last modified date.\nFILE WAS "
                        "NOT UPDATED!!! Force upload "
                        "required.".format(file_class.filename))
-                if check:
+                if file_class.check:
                     print(parse_check(file_class.file_last_update,
                                       modified,
                                       file_class.filename))
                 return
 
-        if check:
+        if file_class.check:
             print("File {} is ready to upload.".format(file_class.filename))
             print(parse_check(file_class.file_last_update, modified, file_class.filename))
             return
         if self.backup:
             self.service.files().update(
-                fileId=file_found['id'],
+                fileId=file_class.file_found['id'],
                 body={
                     'name': file_class.filename,
                     'properties': {'no_overwrite': 'true'}
                 }
             ).execute()
-            self.upload_file(file_class, folder_id, media, check)
+            self.upload_file(file_class)
             return
         self.service.files().update(
-            fileId=file_found['id'],
-            media_body=media,
+            fileId=file_class.file_found['id'],
+            media_body=file_class.media,
             body=file_class.file_metadata
         ).execute()
         print("File {} updated.".format(file_class.filepath))
         return
         
-    def upload_file(self, file_class, folder_id, media, check):
-        if check:
+    def upload_file(self, file_class):
+        if file_class.check:
             print("File {} does not exist in GDrive. Ready to "
                   "upload.".format(file_class.filename))
             print(parse_check(file_class.file_last_update, None, file_class.filename))
             return
         if self.no_overwrite:
             file_class.file_metadata['properties']['no_overwrite'] = 'true'
-        file_class.file_metadata['parents'] = [ folder_id ]
+        file_class.file_metadata['parents'] = [ file_class.folder_id ]
         self.service.files().create(
             body=file_class.file_metadata,
-            media_body=media).execute()
+            media_body=file_class.media).execute()
         print("File {} uploaded.".format(file_class.filepath))
 
 
@@ -243,6 +243,13 @@ class LocalFile(object):
             'name': self.filename,
             'properties': {'modified': self.file_last_update}
         }
+    
+    def set_upload_properties(self, force, check, file_found, media, folder_id):
+        self.force = force
+        self.check = check
+        self.file_found = file_found
+        self.media = media
+        self.folder_id = folder_id
 
 
 def parse_check(local_update, drive_update, filename):
