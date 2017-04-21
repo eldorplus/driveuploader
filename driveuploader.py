@@ -5,7 +5,7 @@ overwrite it only if the modified date in the drive is older than the
 modified date of file to be uploaded, unless --force is set.
 
 This module uses a custom 'modified date' property in drive file's
-metadata, so overwriting manually uploaded files must be forced.
+metadata, so manually uploaded files must be forced.
 """
 from __future__ import print_function
 
@@ -166,32 +166,19 @@ class Uploader(object):
             try:
                 modified = int(file_class.file_found['properties']['modified'])
             except KeyError:
-                print("File {} already exists in google drive and was "
-                      "not uploaded by this script.\nFILE "
-                      "WAS NOT UPDATED!!! Use force upload to "
-                      "overwrite.".format(file_class.filename))
-                if file_class.check:
-                    print(parse_check(file_class.file_last_update,
-                                      None,
-                                      file_class.filename))
+                print("Properties not defined for {}.".format(
+                    file_class.filename))
+                print_not_uploaded(file_class, None)
                 return
             if modified > file_class.file_last_update:
-                print("File {} was last modified after local file.\n"
-                       "FILE WAS NOT UPDATED!!! Force upload "
-                       "required.".format(file_class.filename))
-                if file_class.check:
-                    print(parse_check(file_class.file_last_update,
-                                      modified,
-                                      file_class.filename))
+                print("File {} was last modified after local file.".format(
+                    file_class.filename))
+                print_not_uploaded(file_class, modified)
                 return
             elif modified == file_class.file_last_update:
-                print("File {} has same last modified date.\nFILE WAS "
-                       "NOT UPDATED!!! Force upload "
-                       "required.".format(file_class.filename))
-                if file_class.check:
-                    print(parse_check(file_class.file_last_update,
-                                      modified,
-                                      file_class.filename))
+                print("File {} has same last modified date.".format(
+                    file_class.filename))
+                print_not_uploaded(file_class, modified)
                 return
 
         if file_class.check:
@@ -213,7 +200,7 @@ class Uploader(object):
             media_body=file_class.media,
             body=file_class.file_metadata
         ).execute()
-        print("File {} updated.".format(file_class.filepath))
+        print("File {} updated.\n".format(file_class.filepath))
         return
         
     def upload_file(self, file_class):
@@ -228,7 +215,7 @@ class Uploader(object):
         self.service.files().create(
             body=file_class.file_metadata,
             media_body=file_class.media).execute()
-        print("File {} uploaded.".format(file_class.filepath))
+        print("File {} uploaded.\n".format(file_class.filepath))
 
 
 class LocalFile(object):
@@ -268,8 +255,15 @@ def parse_check(local_update, drive_update, filename):
     else:
         drive_mod_time = "Undefined"
     return ("{}:\n  Local file last updated: {}\n  Remote file last updated: "
-        "{}").format(filename, local_mod_time, drive_mod_time)
+        "{}\n").format(filename, local_mod_time, drive_mod_time)
 
+def print_not_uploaded(local_file, drive_update):
+    print('FILE WAS NOT UPLOADED!!! Force upload required.')
+    if local_file.check:
+        print(parse_check(local_file.file_last_update, drive_update,
+                          local_file.filename))
+    else:
+        print()
 
 def main(check=False, force=False, **kwargs):
     gdrive = Uploader(**kwargs)
