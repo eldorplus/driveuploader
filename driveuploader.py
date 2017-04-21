@@ -295,7 +295,7 @@ if __name__ == '__main__':
             "file to work with Drive editors like Drive Notepad.",
         "Set a description to all files to be uploaded, visible in GDrive "
             "app (use quotes). Use --description=\" \" to remove description.",
-        "Add files without overwriting. 'no-overwrite' files will be flagged "
+        "Add files without overwriting. 'no_overwrite' files will be flagged "
             "with a custom property and will never be found by the script.",
         "Enable the 'Press enter to close.' prompt at script end.",
         "Keep the old file instead of overwriting."
@@ -316,7 +316,7 @@ if __name__ == '__main__':
                                  action='store_true')
     parent.add_argument("--mimetype", help=arg_help[6])
     parent.add_argument("--description", help=arg_help[7])
-    exclusive_group.add_argument("--no-overwrite",
+    exclusive_group.add_argument("--no_overwrite",
                         help=arg_help[8],
                         action='store_true')
     parent.add_argument("--prompt",
